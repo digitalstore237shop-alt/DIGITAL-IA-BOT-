@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+name="viewport"
+content="width=device-width,initial-scale=1"
+>
+
+<title>DIGITAL IA BOT</title>
+
+<style>
+
+*{
+box-sizing:border-box
+}
+
+body{
+margin:0;
+font-family:Arial,sans-serif;
+background:#f1f5f9;
+color:#111827
+}
+
+header{
+background:#111827;
+color:white;
+padding:22px;
+display:flex;
+justify-content:space-between;
+align-items:center
+}
+
+h1{
+margin:0
+}
+
+nav{
+background:white;
+padding:12px;
+display:flex;
+gap:8px;
+overflow:auto
+}
+
+button{
+border:0;
+padding:12px 16px;
+border-radius:10px;
+font-weight:bold;
+cursor:pointer
+}
+
+.primary{
+background:#2563eb;
+color:white
+}
+
+main{
+max-width:1100px;
+margin:auto;
+padding:20px
+}
+
+section{
+display:none
+}
+
+section.active{
+display:block
+}
+
+.grid{
+display:grid;
+grid-template-columns:
+repeat(auto-fit,minmax(190px,1fr));
+gap:15px
+}
+
+.card{
+background:white;
+padding:22px;
+border-radius:15px;
+margin-bottom:18px;
+box-shadow:
+0 3px 15px
+rgba(0,0,0,.07)
+}
+
+.card strong,
+.card small{
+display:block
+}
+
+.card small{
+margin-top:7px;
+opacity:.6
+}
+
+.actions{
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+margin:20px 0
+}
+
+pre{
+background:#111827;
+color:#d1fae5;
+padding:15px;
+min-height:220px;
+border-radius:12px;
+overflow:auto;
+white-space:pre-wrap
+}
+
+.status{
+padding:10px 15px;
+border-radius:20px;
+font-weight:bold
+}
+
+.online{
+background:#15803d;
+color:white
+}
+
+.offline{
+background:#b91c1c;
+color:white
+}
+
+.warning{
+background:#fff7ed;
+padding:18px;
+border-left:5px solid #f97316;
+border-radius:10px
+}
+
+input,
+textarea{
+width:100%;
+padding:13px;
+margin:8px 0 18px;
+border:1px solid #d1d5db;
+border-radius:10px
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div>
+
+<h1>
+🤖 DIGITAL IA BOT
+</h1>
+
+<p>
+WhatsApp AI Control Center
+</p>
+
+</div>
+
+<div
+id="status"
+class="status offline"
+>
+● Hors ligne
+</div>
+
+</header>
+
+<nav>
+
+<button
+onclick="show('dashboard')"
+>
+📊 Dashboard
+</button>
+
+<button
+onclick="show('pairing')"
+>
+🔗 Pairing
+</button>
+
+<button
+onclick="show('config')"
+>
+⚙️ Configuration
+</button>
+
+</nav>
+
+<main>
+
+<section
+id="dashboard"
+class="active"
+>
+
+<h2>
+📊 Dashboard
+</h2>
+
+<div class="grid">
+
+<div class="card">
+
+<strong>
+🤖 DIGITAL IA BOT
+</strong>
+
+<small>
+Nom du bot
+</small>
+
+</div>
+
+<div class="card">
+
+<strong>
+📱 +237697929580
+</strong>
+
+<small>
+WhatsApp
+</small>
+
+</div>
+
+<div class="card">
+
+<strong>
+🌐 Render / $PORT
+</strong>
+
+<small>
+Port
+</small>
+
+</div>
+
+<div class="card">
+
+<strong id="state">
+Arrêté
+</strong>
+
+<small>
+État
+</small>
+
+</div>
+
+</div>
+
+<div class="actions">
+
+<button
+class="primary"
+onclick="startBot()"
+>
+▶️ Démarrer
+</button>
+
+<button
+onclick="stopBot()"
+>
+⏹️ Arrêter
+</button>
+
+<button
+onclick="refresh()"
+>
+🔄 Actualiser
+</button>
+
+</div>
+
+<h3>
+📜 Logs
+</h3>
+
+<pre id="logs">
+Chargement...
+</pre>
+
+</section>
+
+
+<section id="pairing">
+
+<h2>
+🔗 Pairing WhatsApp
+</h2>
+
+<div class="warning">
+
+<strong>
+⚠️ Pairing code
+</strong>
+
+<p>
+Le bot utilise le mécanisme de pairing
+WhatsApp et n'affiche volontairement
+aucun QR code.
+</p>
+
+<p>
+Le code de connexion est affiché dans
+les logs du processus du bot.
+</p>
+
+</div>
+
+<div class="card">
+
+<h3>
+📱 Numéro
+</h3>
+
+<strong>
++237 697 929 580
+</strong>
+
+<p>
+Ne partage jamais ton code de pairing
+ou les fichiers de session.
+</p>
+
+</div>
+
+</section>
+
+
+<section id="config">
+
+<h2>
+⚙️ Configuration
+</h2>
+
+<label>
+Nom du bot
+
+<input
+id="name"
+>
+</label>
+
+<label>
+Numéro
+
+<input
+id="phone"
+>
+</label>
+
+<label>
+Message d'accueil
+
+<textarea
+id="welcome"
+rows="5"
+></textarea>
+
+</label>
+
+<label>
+
+<input
+id="auto"
+type="checkbox"
+>
+
+Réponse automatique
+
+</label>
+
+<br><br>
+
+<button
+class="primary"
+onclick="save()"
+>
+💾 Enregistrer
+</button>
+
+</section>
+
+</main>
+
+<script>
+
+async function api(
+url,
+options={}
+){
+
+const response =
+await fetch(
+url,
+options
+);
+
+return response.json();
+}
+
+
+function show(id){
+
+document
+.querySelectorAll("section")
+.forEach(
+x =>
+x.classList.remove(
+"active"
+)
+);
+
+document
+.getElementById(id)
+.classList.add(
+"active"
+);
+
+if(
+id === "config"
+)
+loadConfig();
+}
+
+
+async function refresh(){
+
+try{
+
+const data =
+await api(
+"/api/status"
+);
+
+const status =
+document.getElementById(
+"status"
+);
+
+const state =
+document.getElementById(
+"state"
+);
+
+if(
+data.online
+){
+
+status.textContent =
+"● En ligne";
+
+status.className =
+"status online";
+
+state.textContent =
+"En ligne";
+
+}else{
+
+status.textContent =
+"● Hors ligne";
+
+status.className =
+"status offline";
+
+state.textContent =
+"Arrêté";
+}
+
+
+const logs =
+await api(
+"/api/logs"
+);
+
+document.getElementById(
+"logs"
+).textContent =
+logs.logs ||
+"Aucun log.";
+
+}catch(error){
+
+console.log(error);
+}
+}
+
+
+async function startBot(){
+
+const result =
+await api(
+"/api/bot/start",
+{
+method:"POST"
+}
+);
+
+alert(
+result.message
+);
+
+setTimeout(
+refresh,
+1000
+);
+}
+
+
+async function stopBot(){
+
+const result =
+await api(
+"/api/bot/stop",
+{
+method:"POST"
+}
+);
+
+alert(
+result.message
+);
+
+refresh();
+}
+
+
+async function loadConfig(){
+
+const c =
+await api(
+"/api/config"
+);
+
+document.getElementById(
+"name"
+).value =
+c.botName || "";
+
+document.getElementById(
+"phone"
+).value =
+c.phone || "";
+
+document.getElementById(
+"welcome"
+).value =
+c.welcomeMessage || "";
+
+document.getElementById(
+"auto"
+).checked =
+!!c.autoReply;
+}
+
+
+async function save(){
+
+const data = {
+
+botName:
+document.getElementById(
+"name"
+).value,
+
+phone:
+document.getElementById(
+"phone"
+).value,
+
+welcomeMessage:
+document.getElementById(
+"welcome"
+).value,
+
+autoReply:
+document.getElementById(
+"auto"
+).checked
+};
+
+const result =
+await api(
+"/api/config",
+{
+method:"POST",
+headers:{
+"Content-Type":
+"application/json"
+},
+body:
+JSON.stringify(data)
+}
+);
+
+alert(
+result.success
+?
+"✅ Configuration enregistrée."
+:
+"❌ Erreur."
+);
+
+}
+
+
+refresh();
+
+setInterval(
+refresh,
+5000
+);
+
+</script>
+
+</body>
+
+</html>
