@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: digital-ia-bot
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
