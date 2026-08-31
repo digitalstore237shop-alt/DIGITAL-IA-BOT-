@@ -1,0 +1,15 @@
+{
+  "name": "digital-ia-bot",
+  "version": "1.0.0",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "bot": "node bot.js"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "latest",
+    "express": "latest",
+    "pino": "latest"
+  }
+}
