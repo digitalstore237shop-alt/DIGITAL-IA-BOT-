@@ -5,66 +5,53 @@ const { spawn } = require("child_process");
 
 const app = express();
 
-const PORT =
-  process.env.PORT || 8082;
+const PORT = process.env.PORT || 8082;
+const ROOT = __dirname;
 
-const ROOT =
-  __dirname;
+const CONFIG_FILE = path.join(ROOT, "config.json");
+const LOG_DIR = path.join(ROOT, "logs");
+const LOG_FILE = path.join(LOG_DIR, "bot.log");
 
-const CONFIG =
-  path.join(
-    ROOT,
-    "config.json"
-  );
+fs.mkdirSync(LOG_DIR, { recursive: true });
 
-const LOG_DIR =
-  path.join(
-    ROOT,
-    "logs"
-  );
-
-const LOG_FILE =
-  path.join(
-    LOG_DIR,
-    "bot.log"
-  );
-
-fs.mkdirSync(
-  LOG_DIR,
-  {
-    recursive: true
-  }
-);
-
-app.use(
-  express.json()
-);
+app.use(express.json());
 
 app.use(
   express.static(
-    path.join(
-      ROOT,
-      "public"
-    )
+    path.join(ROOT, "public")
   )
 );
 
 let botProcess = null;
 
-function getConfig() {
 
-  return JSON.parse(
-    fs.readFileSync(
-      CONFIG,
-      "utf8"
-    )
-  );
+/* =========================
+   UTILITAIRES
+========================= */
+
+function getConfig() {
+  try {
+    return JSON.parse(
+      fs.readFileSync(
+        CONFIG_FILE,
+        "utf8"
+      )
+    );
+  } catch (error) {
+    return {
+      botName: "DIGITAL IA BOT",
+      phone: "237697929580",
+      autoReply: true,
+      welcomeMessage:
+        "👋 Bonjour ! Je suis DIGITAL IA BOT. Comment puis-je t'aider ?"
+    };
+  }
 }
 
-function saveConfig(config) {
 
+function saveConfig(config) {
   fs.writeFileSync(
-    CONFIG,
+    CONFIG_FILE,
     JSON.stringify(
       config,
       null,
@@ -73,24 +60,45 @@ function saveConfig(config) {
   );
 }
 
-function writeLog(message) {
 
-  fs.appendFileSync(
-    LOG_FILE,
-    `[${new Date().toISOString()}] ${message}\n`
-  );
+function writeLog(message) {
+  try {
+    fs.appendFileSync(
+      LOG_FILE,
+      `[${new Date().toISOString()}] ${message}\n`
+    );
+  } catch {}
 }
 
 
-/*
- * STATUS
- */
+/* =========================
+   HEALTH CHECK
+========================= */
+
+app.get(
+  "/health",
+  (req, res) => {
+
+    res.status(200).json({
+      status: "ok",
+      bot: "DIGITAL IA BOT",
+      port: PORT,
+      time: new Date().toISOString()
+    });
+
+  }
+);
+
+
+/* =========================
+   STATUS
+========================= */
+
 app.get(
   "/api/status",
   (req, res) => {
 
-    const config =
-      getConfig();
+    const config = getConfig();
 
     res.json({
 
@@ -106,18 +114,22 @@ app.get(
         PORT,
 
       online:
-        !!botProcess,
+        botProcess !== null,
 
-      dashboard:
-        `http://localhost:${PORT}`
+      platform:
+        process.env.RENDER
+          ? "Render"
+          : "Termux"
     });
+
   }
 );
 
 
-/*
- * CONFIG
- */
+/* =========================
+   CONFIGURATION
+========================= */
+
 app.get(
   "/api/config",
   (req, res) => {
@@ -125,6 +137,7 @@ app.get(
     res.json(
       getConfig()
     );
+
   }
 );
 
@@ -133,34 +146,38 @@ app.post(
   "/api/config",
   (req, res) => {
 
-    const config = {
+    const oldConfig =
+      getConfig();
 
-      ...getConfig(),
-
+    const newConfig = {
+      ...oldConfig,
       ...req.body
     };
 
     saveConfig(
-      config
+      newConfig
     );
 
     writeLog(
-      "Configuration modifiée."
+      "Configuration mise à jour."
     );
 
     res.json({
 
       success: true,
 
-      config
+      config:
+        newConfig
     });
+
   }
 );
 
 
-/*
- * LOGS
- */
+/* =========================
+   LOGS
+========================= */
+
 app.get(
   "/api/logs",
   (req, res) => {
@@ -178,7 +195,8 @@ app.get(
     } catch {
 
       logs =
-        "Aucun log.";
+        "Aucun log disponible.";
+
     }
 
     res.json({
@@ -186,191 +204,306 @@ app.get(
       success: true,
 
       logs:
-        logs.slice(-20000)
+        logs.slice(-30000)
+
     });
+
   }
 );
 
 
-/*
- * START BOT
- */
+/* =========================
+   START BOT
+========================= */
+
 app.post(
   "/api/bot/start",
   (req, res) => {
 
-    if (
-      botProcess
-    ) {
+    if (botProcess) {
 
       return res.json({
 
         success: false,
 
         message:
-          "Bot déjà lancé."
+          "DIGITAL IA BOT est déjà démarré."
+
       });
+
     }
 
-    botProcess =
-      spawn(
-        "node",
-        ["bot.js"],
-        {
-          cwd: ROOT,
+    try {
 
-          stdio: [
-            "ignore",
-            "pipe",
-            "pipe"
-          ]
+      botProcess =
+        spawn(
+          process.execPath,
+          ["bot.js"],
+          {
+            cwd: ROOT,
+
+            env: {
+              ...process.env
+            },
+
+            stdio: [
+              "ignore",
+              "pipe",
+              "pipe"
+            ]
+          }
+        );
+
+
+      botProcess.stdout.on(
+        "data",
+        data => {
+
+          const text =
+            data.toString();
+
+          process.stdout.write(
+            text
+          );
+
+          writeLog(
+            text.trim()
+          );
+
         }
       );
 
-    botProcess.stdout.on(
-      "data",
-      data => {
 
-        const text =
-          data.toString();
+      botProcess.stderr.on(
+        "data",
+        data => {
 
-        console.log(
-          text
-        );
+          const text =
+            data.toString();
 
-        writeLog(
-          text.trim()
-        );
-      }
-    );
+          process.stderr.write(
+            text
+          );
 
-    botProcess.stderr.on(
-      "data",
-      data => {
+          writeLog(
+            "ERROR: " +
+            text.trim()
+          );
 
-        const text =
-          data.toString();
+        }
+      );
 
-        console.error(
-          text
-        );
 
-        writeLog(
-          "ERROR: " +
-          text.trim()
-        );
-      }
-    );
+      botProcess.on(
+        "error",
+        error => {
 
-    botProcess.on(
-      "exit",
-      code => {
+          writeLog(
+            "Erreur processus bot : " +
+            error.message
+          );
 
-        writeLog(
-          `Bot arrêté : ${code}`
-        );
+          botProcess = null;
 
-        botProcess =
-          null;
-      }
-    );
+        }
+      );
 
-    writeLog(
-      "Bot démarré."
-    );
 
-    res.json({
+      botProcess.on(
+        "exit",
+        (code, signal) => {
 
-      success: true,
+          writeLog(
+            `Bot arrêté. code=${code} signal=${signal}`
+          );
 
-      message:
-        "Bot démarré."
-    });
+          botProcess = null;
+
+        }
+      );
+
+
+      writeLog(
+        "DIGITAL IA BOT démarré."
+      );
+
+
+      res.json({
+
+        success: true,
+
+        message:
+          "DIGITAL IA BOT démarré."
+
+      });
+
+    } catch (error) {
+
+      botProcess = null;
+
+      writeLog(
+        "Erreur démarrage : " +
+        error.message
+      );
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          error.message
+
+      });
+
+    }
+
   }
 );
 
 
-/*
- * STOP BOT
- */
+/* =========================
+   STOP BOT
+========================= */
+
 app.post(
   "/api/bot/stop",
   (req, res) => {
 
-    if (
-      !botProcess
-    ) {
+    if (!botProcess) {
 
       return res.json({
 
         success: false,
 
         message:
-          "Bot déjà arrêté."
+          "DIGITAL IA BOT est déjà arrêté."
+
       });
+
     }
 
-    botProcess.kill(
-      "SIGTERM"
-    );
 
-    botProcess =
-      null;
+    try {
 
-    writeLog(
-      "Bot arrêté."
-    );
+      botProcess.kill(
+        "SIGTERM"
+      );
 
-    res.json({
+      writeLog(
+        "Arrêt demandé pour DIGITAL IA BOT."
+      );
 
-      success: true,
+      botProcess = null;
 
-      message:
-        "Bot arrêté."
-    });
+
+      res.json({
+
+        success: true,
+
+        message:
+          "DIGITAL IA BOT arrêté."
+
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+
+        success: false,
+
+        message:
+          error.message
+
+      });
+
+    }
+
   }
 );
 
 
-/*
- * HEALTH CHECK RENDER
- */
+/* =========================
+   BOT INFO
+========================= */
+
 app.get(
-  "/health",
+  "/api/info",
   (req, res) => {
+
+    const config =
+      getConfig();
 
     res.json({
 
-      status:
-        "ok",
+      name:
+        config.botName,
 
-      bot:
-        "DIGITAL IA BOT",
+      phone:
+        config.phone,
 
       port:
-        PORT
+        PORT,
+
+      whatsapp:
+        true,
+
+      pairing:
+        true,
+
+      qr:
+        false
+
     });
+
   }
 );
 
 
+/* =========================
+   ROUTE DASHBOARD
+========================= */
+
 /*
- * DASHBOARD
+ * IMPORTANT :
+ * Ne pas utiliser app.get("*")
+ * avec Express récent.
+ *
+ * Cette syntaxe évite l'erreur :
+ * Missing parameter name at index 1: *
  */
+
 app.get(
-  "*",
+  "/{*splat}",
   (req, res) => {
 
-    res.sendFile(
+    const indexFile =
       path.join(
         ROOT,
         "public",
         "index.html"
-      )
+      );
+
+    if (
+      fs.existsSync(indexFile)
+    ) {
+
+      return res.sendFile(
+        indexFile
+      );
+
+    }
+
+    res.status(404).send(
+      "DIGITAL IA BOT - Dashboard introuvable."
     );
+
   }
 );
 
+
+/* =========================
+   DEMARRAGE
+========================= */
 
 app.listen(
   PORT,
@@ -379,22 +512,73 @@ app.listen(
 
     console.log("");
     console.log(
-      "======================================"
+      "=========================================="
     );
     console.log(
-      "       🤖 DIGITAL IA BOT"
+      "        🤖 DIGITAL IA BOT"
     );
     console.log(
-      "======================================"
+      "=========================================="
     );
     console.log(
-      "🌐 Port : " + PORT
+      `🌐 PORT : ${PORT}`
     );
     console.log(
-      "📱 +237697929580"
+      "📱 WHATSAPP : +237697929580"
     );
     console.log(
-      "======================================"
+      `❤️ HEALTH : /health`
     );
+    console.log(
+      "🔗 PAIRING : activé"
+    );
+    console.log(
+      "📷 QR : désactivé"
+    );
+    console.log(
+      "=========================================="
+    );
+    console.log("");
+
+    writeLog(
+      `Serveur démarré sur le port ${PORT}.`
+    );
+
   }
+);
+
+
+/* =========================
+   ARRET PROPRE
+========================= */
+
+function shutdown() {
+
+  console.log(
+    "Arrêt de DIGITAL IA BOT..."
+  );
+
+  if (botProcess) {
+
+    try {
+      botProcess.kill(
+        "SIGTERM"
+      );
+    } catch {}
+
+    botProcess = null;
+  }
+
+  process.exit(0);
+}
+
+
+process.on(
+  "SIGTERM",
+  shutdown
+);
+
+process.on(
+  "SIGINT",
+  shutdown
 );
